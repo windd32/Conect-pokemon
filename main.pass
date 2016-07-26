@@ -1,0 +1,56 @@
+var
+  s: string;
+  data: TStringList;
+  js: TJSONObject;
+  LOGIN_URL, LOGIN_OAUTH, PTC_CLIENT_SECRET: string;
+begin
+
+  LOGIN_URL :=
+    'https://sso.pokemon.com/sso/login?service=https://sso.pokemon.com/sso/oauth2.0/callbackAuthorize';
+  LOGIN_OAUTH := 'https://sso.pokemon.com/sso/oauth2.0/accessToken';
+  PTC_CLIENT_SECRET :=
+    'w8ScCUXJQc6kXKw8FiOhd8Fixzht18Dq3PEVkUCP5ZPxtgyWsbTvWHFLm2wNY0JR';
+  log('Запрос токена');
+  Application.ProcessMessages ;
+  s := (IdHTTP1.get(LOGIN_URL));
+  js := TJSONObject.ParseJSONValue(s) as TJSONObject;
+  Application.ProcessMessages;
+    data := TStringList.Create;
+    data.Add('lt=' + js.GetValue('lt').Value);
+    data.Add('execution=' + js.GetValue('execution').Value);
+    data.Add('_eventId=submit');
+    data.Add('username=    ');
+    data.Add('password=     ');
+    log('Авторизация');
+    Application.ProcessMessages;
+    IdHTTP1.HandleRedirects :=  false;
+    IdHTTP1.Post(LOGIN_URL, data);
+      s := IdHTTP1.Response.Location;
+     Application.ProcessMessages;
+
+    s := GetText(s, 'ticket=', 'sso.pokemon.com') ;
+    log('Авторизация 2');
+    data.Clear;
+    data.Add('client_id=mobile-app_pokemon-go');
+    data.Add('redirect_uri=https://www.nianticlabs.com/pokemongo/error');
+    data.Add('client_secret=' + PTC_CLIENT_SECRET);
+    data.Add('grant_type=refresh_token');
+    data.Add('code=' + s + 'sso.pokemon.com');
+    Application.ProcessMessages;
+    log(data.text);
+
+
+    s := IdHTTP1.Post(LOGIN_OAUTH, data);
+     log('Location '+IdHTTP1.Response.Location);
+     log('ResponseText '+IdHTTP1.Response.ResponseText);
+     log('Server '+IdHTTP1.Response.Server);
+     log(s);
+    access_token := GetText(s, 'token=', '&') ;
+    log(access_token);
+  data.Free;
+    js.Destroy;
+
+    log('Авторизация закончана');
+
+ 
+end;
